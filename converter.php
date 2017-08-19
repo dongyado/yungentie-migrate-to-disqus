@@ -10,22 +10,18 @@
  * @author dongyado<dongyado@gmail.com>
  * */
 
-$gentie_file_path = 'data.json';
-$disqus_file_path = 'disqus_comment.xml';
-
+$gentie_file_path = 'data.json'; // path to yungentie data
+$disqus_file_path = 'disqus_comment.xml'; // path to write converted comments
 
 if ($gentie_file_path == '' || !file_exists($gentie_file_path)) {
-    echo "+-- Invalid gentie file path --+\n";
-    exit();
+    exit("+-- Invalid gentie file path --+\n");
 }
 
-$comment = file_get_contents($gentie_file_path);
-
+$comment  = file_get_contents($gentie_file_path);
 $comments = json_decode($comment, true);
 
 if (empty($comments)) {
-    echo "+-- Empty comments --+\n";
-    exit();
+    exit("+-- Empty comments --+\n");
 }
 
 $xml = <<<EOF
@@ -40,45 +36,46 @@ $xml = <<<EOF
 
 EOF;
 
-
 $handle = fopen($disqus_file_path, "w");
 
-if (!$handle)  {
+if (!$handle) {
     exit("+-- failed to open {$disqus_file_path} --+\n");
 }
 
 fwrite($handle, $xml);
 
+$old_domain    = ""; // if you need use new domain
+$dist_domain   = ""; // if you need use new domain
+$comment_count = 0;
 
-$old_domain     = "dongyado.com";
-$dist_domain    = "dongyado.com";
-$comment_count  = 0;
-
-foreach($comments as $item ) {
+foreach ($comments as $item) {
     $item_xml = "\n<item>\n";
     $item_xml .= "<title>{$item['title']}</title>\n";
-    $item_xml .= "<link>http://".str_replace($old_domain, $dist_domain, $item['url']) ."</link>\n";
-    $item_xml .= "<content:encoded><![CDATA[".time()."]]></content:encoded>\n";
-    $item_xml .= "<dsq:thread_identifier>". (time() . mt_rand(1, 1000)) ."</dsq:thread_identifier>\n";
 
-    $item_xml .= "<wp:post_date_gmt>".date('Y-m-d H:i:s', ((int) ($item['ctime'] / 1000)))."</wp:post_date_gmt>\n";
+    if ($old_domain && $dist_domain)
+        $item_xml .= "<link>http://" . str_replace($old_domain, $dist_domain, $item['url']) . "</link>\n";
+    else
+        $item_xml .= "<link>http://" . $item['url'] . "</link>\n";
+
+    $item_xml .= "<content:encoded><![CDATA[" . time() . "]]></content:encoded>\n";
+    $item_xml .= "<dsq:thread_identifier>" . (time() . mt_rand(1, 1000)) . "</dsq:thread_identifier>\n";
+    $item_xml .= "<wp:post_date_gmt>" . date('Y-m-d H:i:s', ((int)($item['ctime'] / 1000))) . "</wp:post_date_gmt>\n";
     $item_xml .= "<wp:comment_status>open</wp:comment_status>\n";
 
-    foreach($item['comments'] as $comment ) {
-
+    foreach ($item['comments'] as $comment) {
         $item_xml .= "
             <wp:comment>
-            <wp:comment_id>".$comment['cid']."</wp:comment_id>
-            <wp:comment_author>".$comment['user']['nickname']."</wp:comment_author>
-            <wp:comment_author_email>".$comment['cid'] . mt_rand(1, 100) ."@example.com</wp:comment_author_email>
+            <wp:comment_id>" . $comment['cid'] . "</wp:comment_id>
+            <wp:comment_author>" . $comment['user']['nickname'] . "</wp:comment_author>
+            <wp:comment_author_email>" . $comment['cid'] . mt_rand(1, 100) . "@example.com</wp:comment_author_email>
             <wp:comment_author_url></wp:comment_author_url>
-            <wp:comment_author_IP>".$comment['ip']."</wp:comment_author_IP>
-            <wp:comment_date_gmt>".date('Y-m-d H:i:s',( (int) ($comment['ctime']/1000)))."</wp:comment_date_gmt>
-            <wp:comment_content><![CDATA[".$comment['content']."]]></wp:comment_content>
+            <wp:comment_author_IP>" . $comment['ip'] . "</wp:comment_author_IP>
+            <wp:comment_date_gmt>" . date('Y-m-d H:i:s', ((int)($comment['ctime'] / 1000))) . "</wp:comment_date_gmt>
+            <wp:comment_content><![CDATA[" . $comment['content'] . "]]></wp:comment_content>
             <wp:comment_approved>1</wp:comment_approved>
-            <wp:comment_parent>".$comment['pid']."</wp:comment_parent>
+            <wp:comment_parent>" . $comment['pid'] . "</wp:comment_parent>
             </wp:comment>\n";
-        
+
         $comment_count++;
     }
 

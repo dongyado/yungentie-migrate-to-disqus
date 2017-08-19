@@ -2,3 +2,6 @@
 *.swp
 *.swo
 *~
+
+data.json
+disqus_comment.xml
